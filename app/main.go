@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -48,6 +49,16 @@ func matchLine(line []byte, pattern string) (bool, error) {
 	// Note: "\\w" represents the literal string "\w" (backslash needs to be escaped in Go string literals)
 	if pattern == "\\w" {
 		return bytes.ContainsAny(line, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"), nil
+	}
+
+	// Handle positive character groups like [abc]
+	// Note: This only handles literal characters, not ranges like [a-z] or negation like [^abc]
+	if strings.HasPrefix(pattern, "[") && strings.HasSuffix(pattern, "]") {
+		charClass := pattern[1 : len(pattern)-1] // Extract characters between brackets
+		if charClass == "" {
+			return false, fmt.Errorf("empty character class: %q", pattern)
+		}
+		return bytes.ContainsAny(line, charClass), nil
 	}
 
 	if utf8.RuneCountInString(pattern) != 1 {
