@@ -101,6 +101,49 @@ func TestMatchLine(t *testing.T) {
 			want:    false,
 			wantErr: true,
 		},
+		// Negative character groups 테스트
+		{
+			name:    "[^abc] matches cat (has t)",
+			line:    []byte("cat"),
+			pattern: "[^abc]",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "[^abc] does not match cab",
+			line:    []byte("cab"),
+			pattern: "[^abc]",
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "[^ab] matches abc (has c)",
+			line:    []byte("abc"),
+			pattern: "[^ab]",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "[^xyz] matches hello",
+			line:    []byte("hello"),
+			pattern: "[^xyz]",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "[^xyz] does not match xyz",
+			line:    []byte("xyz"),
+			pattern: "[^xyz]",
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "empty negated character class error",
+			line:    []byte("test"),
+			pattern: "[^]",
+			want:    false,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {

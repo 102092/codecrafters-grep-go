@@ -51,8 +51,25 @@ func matchLine(line []byte, pattern string) (bool, error) {
 		return bytes.ContainsAny(line, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"), nil
 	}
 
+	// Handle negative character groups like [^abc] (must check before positive groups)
+	// [^abc] should match "cat" (true), since "t" is not in the set "a", "b", or "c"
+	// [^abc] should not match "cab" (false), since all characters are in the set
+	if strings.HasPrefix(pattern, "[^") && strings.HasSuffix(pattern, "]") {
+		charClass := pattern[2 : len(pattern)-1]
+		if charClass == "" {
+			return false, fmt.Errorf("empty negated character class: %q", pattern)
+		}
+
+		for _, r := range string(line) {
+			if !strings.ContainsRune(charClass, r) {
+				return true, nil // Found a character not in the class
+			}
+		}
+		return false, nil // All characters are in the class
+	}
+
 	// Handle positive character groups like [abc]
-	// Note: This only handles literal characters, not ranges like [a-z] or negation like [^abc]
+	// Note: This only handles literal characters, not ranges like [a-z]
 	if strings.HasPrefix(pattern, "[") && strings.HasSuffix(pattern, "]") {
 		charClass := pattern[1 : len(pattern)-1] // Extract characters between brackets
 		if charClass == "" {
