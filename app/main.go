@@ -40,10 +40,12 @@ func main() {
 }
 
 func matchLine(line []byte, pattern string) (bool, error) {
+	// Note: "\\d" represents the literal string "\d" (backslash needs to be escaped in Go string literals)
 	if pattern == "\\d" {
 		return bytes.ContainsAny(line, "0123456789"), nil
 	}
 
+	// Note: "\\w" represents the literal string "\w" (backslash needs to be escaped in Go string literals)
 	if pattern == "\\w" {
 		return bytes.ContainsAny(line, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"), nil
 	}
