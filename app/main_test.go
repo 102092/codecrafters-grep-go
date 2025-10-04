@@ -65,6 +65,42 @@ func TestMatchLine(t *testing.T) {
 			want:    false,
 			wantErr: true,
 		},
+		// Positive character groups 테스트
+		{
+			name:    "[abc] matches a",
+			line:    []byte("apple"),
+			pattern: "[abc]",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "[abc] matches b",
+			line:    []byte("banana"),
+			pattern: "[abc]",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "[abc] no match",
+			line:    []byte("xyz"),
+			pattern: "[abc]",
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "[xyz] matches z",
+			line:    []byte("buzz"),
+			pattern: "[xyz]",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "empty character class error",
+			line:    []byte("test"),
+			pattern: "[]",
+			want:    false,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
