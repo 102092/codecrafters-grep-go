@@ -43,6 +43,12 @@ func main() {
 // matchLine checks if the pattern matches anywhere in the line.
 // It tries matching from every position in the line until a match is found.
 func matchLine(inputText []byte, pattern string) (bool, error) {
+	// Special case: pattern starts with ^, must match from the beginning
+	if strings.HasPrefix(pattern, "^") {
+		pattern = pattern[1:] // Remove leading ^, ^apple -> apple
+		return strings.HasPrefix(string(inputText), pattern), nil
+	}
+
 	tokens, err := parseTokens(pattern)
 	if err != nil {
 		return false, err
