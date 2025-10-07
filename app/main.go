@@ -1,15 +1,16 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 )
 
-// Ensures gofmt doesn't remove the "bytes" import above (feel free to remove this!)
-var _ = bytes.ContainsAny
+const (
+	digits    = "0123456789"
+	wordChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
+)
 
 // Usage: echo <input_text> | your_program.sh -E <pattern>
 func main() {
@@ -39,12 +40,17 @@ func main() {
 	// default exit code is 0 which means success
 }
 
-func matchLine(line []byte, pattern string) (bool, error) {
-	// Note: "\\d" represents the literal string "\d" (backslash needs to be escaped in Go string literals)
-	tokens := parseTokens(pattern)
+// matchLine checks if the pattern matches anywhere in the line.
+// It tries matching from every position in the line until a match is found.
+func matchLine(inputText []byte, pattern string) (bool, error) {
+	tokens, err := parseTokens(pattern)
+	if err != nil {
+		return false, err
+	}
 
-	for start := 0; start < len(line); start++ {
-		if matchFromPosition(line, tokens, start) {
+	// Try matching from each position in the inputText
+	for start := 0; start < len(inputText); start++ {
+		if matchFromPosition(inputText, tokens, start) {
 			return true, nil
 		}
 	}
@@ -52,79 +58,109 @@ func matchLine(line []byte, pattern string) (bool, error) {
 	return false, nil
 }
 
-func matchFromPosition(line []byte, tokens []string, start int) bool {
-	input := start
+// matchFromPosition attempts to match all tokens sequentially starting from the given position.
+// It returns true if all tokens match consecutively from the start position.
+func matchFromPosition(inputText []byte, tokens []string, startIndex int) bool {
+	inputIndex := startIndex
 
+	// Try to match each token in sequence
 	for i := 0; i < len(tokens); i++ {
 		token := tokens[i]
 
-		if input >= len(line) {
+		// Check if we've run out of inputIndex characters
+		if inputIndex >= len(inputText) {
 			return false
 		}
 
-		if matchSingleToken(token, line[input]) {
-			input++
+		if matchSingleToken(token, inputText[inputIndex]) {
+			inputIndex++ // Move to next character
 		} else {
-			return false
+			return false // Token doesn't match, fail immediately
 		}
 	}
 
-	return true
+	return true // All tokens matched successfully
 }
 
+// matchSingleToken checks if a single token matches a single byte.
+//
+// Supported token types:
+//   - \d: digit characters (0-9)
+//   - \w: word characters (letters, digits, underscore)
+//   - [abc]: positive character groups (matches if b is in the set)
+//   - [^abc]: negative character groups (matches if b is NOT in the set)
+//   - literal characters: exact match
 func matchSingleToken(token string, b byte) bool {
-	// digit character: 0-9
+	// \d: digit character (0-9)
 	if token == "\\d" {
-		return strings.ContainsAny(string(b), "0123456789")
+		return strings.ContainsAny(string(b), digits)
 	}
 
-	// word character: letters, digits, underscore
+	// \w: word character (letters, digits, underscore)
 	if token == "\\w" {
-		return strings.ContainsAny(string(b), "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")
+		return strings.ContainsAny(string(b), wordChars)
 	}
 
-	// Negated character group: [^abc]
+	// [^abc]: negative character group - matches if b is NOT in the set
 	if strings.HasPrefix(token, "[^") && strings.HasSuffix(token, "]") {
-		char := token[2 : len(token)-1]
-		if char == "" {
+		charClass := token[2 : len(token)-1]
+		if charClass == "" {
 			return false
 		}
 
-		return !strings.ContainsRune(char, rune(b))
+		return !strings.ContainsRune(charClass, rune(b))
 	}
 
-	// Positive character group: [abc]
+	// [abc]: positive character group - matches if b is in the set
 	if strings.HasPrefix(token, "[") && strings.HasSuffix(token, "]") {
-		char := token[1 : len(token)-1]
-		if char == "" {
+		charClass := token[1 : len(token)-1]
+		if charClass == "" {
 			return false
 		}
 
-		return strings.ContainsRune(char, rune(b))
+		return strings.ContainsRune(charClass, rune(b))
 	}
 
+	// Literal character: exact match
 	return token == string(b)
 }
 
-func parseTokens(pattern string) []string {
-	tokens := []string{}
+// parseTokens breaks a pattern string into individual tokens.
+// Tokens can be:
+//   - Escape sequences: \d, \w (2 characters treated as one token)
+//   - Character classes: [abc], [^abc] (entire bracket expression as one token)
+//   - Single characters: any other character
+//
+// Returns an error if a character class is not properly closed with ']'.
+func parseTokens(pattern string) ([]string, error) {
+	var tokens []string
 
 	for i := 0; i < len(pattern); {
+		// Escape sequences: \d, \w, etc.
 		if pattern[i] == '\\' && i+1 < len(pattern) {
 			tokens = append(tokens, pattern[i:i+2])
 			i += 2
 
+			// Character classes: [abc] or [^abc]
 		} else if pattern[i] == '[' {
 			j := i + 1
+			// Find the closing ']'
 			for j < len(pattern) && pattern[j] != ']' {
 				j++
 			}
+			// Check if we found a closing bracket
+			if j >= len(pattern) {
+				return nil, fmt.Errorf("unclosed character class starting at position %d", i)
+			}
+
 			tokens = append(tokens, pattern[i:j+1])
 			i = j + 1
+
+			// Single literal character
 		} else {
 			tokens = append(tokens, string(pattern[i]))
 			i++
 		}
 	}
-	return tokens
+	return tokens, nil
 }
