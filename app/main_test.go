@@ -57,14 +57,6 @@ func TestMatchLine(t *testing.T) {
 			want:    false,
 			wantErr: false,
 		},
-		// 에러 케이스
-		{
-			name:    "multi-char pattern error",
-			line:    []byte("test"),
-			pattern: "abc",
-			want:    false,
-			wantErr: true,
-		},
 		// Positive character groups 테스트
 		{
 			name:    "[abc] matches a",
@@ -93,13 +85,6 @@ func TestMatchLine(t *testing.T) {
 			pattern: "[xyz]",
 			want:    true,
 			wantErr: false,
-		},
-		{
-			name:    "empty character class error",
-			line:    []byte("test"),
-			pattern: "[]",
-			want:    false,
-			wantErr: true,
 		},
 		// Negative character groups 테스트
 		{
@@ -137,12 +122,62 @@ func TestMatchLine(t *testing.T) {
 			want:    false,
 			wantErr: false,
 		},
+		// Pattern sequence tests
 		{
-			name:    "empty negated character class error",
-			line:    []byte("test"),
-			pattern: "[^]",
+			name:    "\\d apple matches 1 apple",
+			line:    []byte("1 apple"),
+			pattern: "\\d apple",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "\\d apple does not match 1 orange",
+			line:    []byte("1 orange"),
+			pattern: "\\d apple",
 			want:    false,
-			wantErr: true,
+			wantErr: false,
+		},
+		{
+			name:    "\\d\\d\\d apple matches 100 apples",
+			line:    []byte("100 apples"),
+			pattern: "\\d\\d\\d apple",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "\\d\\d\\d apple does not match 1 apple",
+			line:    []byte("1 apple"),
+			pattern: "\\d\\d\\d apple",
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "\\d \\w\\w\\ws matches 3 dogs",
+			line:    []byte("3 dogs"),
+			pattern: "\\d \\w\\w\\ws",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "\\d \\w\\w\\ws matches 4 cats",
+			line:    []byte("4 cats"),
+			pattern: "\\d \\w\\w\\ws",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "\\d \\w\\w\\ws does not match 1 dog",
+			line:    []byte("1 dog"),
+			pattern: "\\d \\w\\w\\ws",
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "multi-char sequence abc",
+			line:    []byte("xyzabcdef"),
+			pattern: "abc",
+			want:    true,
+			wantErr: false,
 		},
 	}
 

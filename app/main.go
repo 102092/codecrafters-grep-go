@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"unicode/utf8"
 )
 
 // Ensures gofmt doesn't remove the "bytes" import above (feel free to remove this!)
@@ -42,52 +41,90 @@ func main() {
 
 func matchLine(line []byte, pattern string) (bool, error) {
 	// Note: "\\d" represents the literal string "\d" (backslash needs to be escaped in Go string literals)
-	if pattern == "\\d" {
-		return bytes.ContainsAny(line, "0123456789"), nil
+	tokens := parseTokens(pattern)
+
+	for start := 0; start < len(line); start++ {
+		if matchFromPosition(line, tokens, start) {
+			return true, nil
+		}
 	}
 
-	// Note: "\\w" represents the literal string "\w" (backslash needs to be escaped in Go string literals)
-	if pattern == "\\w" {
-		return bytes.ContainsAny(line, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"), nil
-	}
+	return false, nil
+}
 
-	// Handle negative character groups like [^abc] (must check before positive groups)
-	// [^abc] should match "cat" (true), since "t" is not in the set "a", "b", or "c"
-	// [^abc] should not match "cab" (false), since all characters are in the set
-	if strings.HasPrefix(pattern, "[^") && strings.HasSuffix(pattern, "]") {
-		charClass := pattern[2 : len(pattern)-1]
-		if charClass == "" {
-			return false, fmt.Errorf("empty negated character class: %q", pattern)
+func matchFromPosition(line []byte, tokens []string, start int) bool {
+	input := start
+
+	for i := 0; i < len(tokens); i++ {
+		token := tokens[i]
+
+		if input >= len(line) {
+			return false
 		}
 
-		for _, r := range string(line) {
-			if !strings.ContainsRune(charClass, r) {
-				return true, nil // Found a character not in the class
+		if matchSingleToken(token, line[input]) {
+			input++
+		} else {
+			return false
+		}
+	}
+
+	return true
+}
+
+func matchSingleToken(token string, b byte) bool {
+	// digit character: 0-9
+	if token == "\\d" {
+		return strings.ContainsAny(string(b), "0123456789")
+	}
+
+	// word character: letters, digits, underscore
+	if token == "\\w" {
+		return strings.ContainsAny(string(b), "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")
+	}
+
+	// Negated character group: [^abc]
+	if strings.HasPrefix(token, "[^") && strings.HasSuffix(token, "]") {
+		char := token[2 : len(token)-1]
+		if char == "" {
+			return false
+		}
+
+		return !strings.ContainsRune(char, rune(b))
+	}
+
+	// Positive character group: [abc]
+	if strings.HasPrefix(token, "[") && strings.HasSuffix(token, "]") {
+		char := token[1 : len(token)-1]
+		if char == "" {
+			return false
+		}
+
+		return strings.ContainsRune(char, rune(b))
+	}
+
+	return token == string(b)
+}
+
+func parseTokens(pattern string) []string {
+	tokens := []string{}
+
+	for i := 0; i < len(pattern); {
+		if pattern[i] == '\\' && i+1 < len(pattern) {
+			tokens = append(tokens, pattern[i:i+2])
+			i += 2
+
+		} else if pattern[i] == '[' {
+			j := i + 1
+			for j < len(pattern) && pattern[j] != ']' {
+				j++
 			}
+			tokens = append(tokens, pattern[i:j+1])
+			i = j + 1
+		} else {
+			tokens = append(tokens, string(pattern[i]))
+			i++
 		}
-		return false, nil // All characters are in the class
 	}
-
-	// Handle positive character groups like [abc]
-	// Note: This only handles literal characters, not ranges like [a-z]
-	if strings.HasPrefix(pattern, "[") && strings.HasSuffix(pattern, "]") {
-		charClass := pattern[1 : len(pattern)-1] // Extract characters between brackets
-		if charClass == "" {
-			return false, fmt.Errorf("empty character class: %q", pattern)
-		}
-		return bytes.ContainsAny(line, charClass), nil
-	}
-
-	if utf8.RuneCountInString(pattern) != 1 {
-		return false, fmt.Errorf("unsupported pattern: %q", pattern)
-	}
-
-	var ok bool
-
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
-	fmt.Fprintln(os.Stderr, "Logs from your program will appear here!")
-
-	ok = bytes.ContainsAny(line, pattern)
-
-	return ok, nil
+	return tokens
 }
