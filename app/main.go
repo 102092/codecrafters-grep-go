@@ -43,10 +43,22 @@ func main() {
 // matchLine checks if the pattern matches anywhere in the line.
 // It tries matching from every position in the line until a match is found.
 func matchLine(inputText []byte, pattern string) (bool, error) {
+	// Special case: pattern starts with ^ and ends with $, must match the whole line
+	if strings.HasPrefix(pattern, "^") && strings.HasSuffix(pattern, "$") {
+		pattern = pattern[1 : len(pattern)-1] // Remove both ^ and $, ^apple$ -> apple
+		return string(inputText) == pattern, nil
+	}
+
 	// Special case: pattern starts with ^, must match from the beginning
 	if strings.HasPrefix(pattern, "^") {
 		pattern = pattern[1:] // Remove leading ^, ^apple -> apple
 		return strings.HasPrefix(string(inputText), pattern), nil
+	}
+
+	// Special case: pattern ends with $, must match at the end
+	if strings.HasSuffix(pattern, "$") {
+		pattern = pattern[0 : len(pattern)-1] // Remove trailing $, apple$ -> apple
+		return strings.HasSuffix(string(inputText), pattern), nil
 	}
 
 	tokens, err := parseTokens(pattern)
