@@ -66,10 +66,17 @@ func parseTokens(pattern string) ([]Token, error) {
 				token.Type = Digit
 			case 'w':
 				token.Type = Word
+			case '\\':
+				// Literal backslash: \\ represents a single '\'
+				token.Type = Literal
+				token.Value = "\\"
 			default:
 				return nil, fmt.Errorf("unsupported escape sequence: %s", patternValue)
 			}
-			token.Value = patternValue
+			// Only set Value if not already set (like for \\)
+			if token.Value == "" {
+				token.Value = patternValue
+			}
 
 			// Character classes: [abc] or [^abc]
 		} else if pattern[i] == '[' {

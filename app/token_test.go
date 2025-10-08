@@ -47,6 +47,14 @@ func TestParseTokens(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:    "\\\\ literal backslash",
+			pattern: "\\\\",
+			want: []Token{
+				{Type: Literal, Value: "\\", Quantifier: None},
+			},
+			wantErr: false,
+		},
 		// Character classes
 		{
 			name:    "[abc] positive character class",
@@ -115,6 +123,16 @@ func TestParseTokens(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:    "a\\\\b pattern (literal backslash between chars)",
+			pattern: "a\\\\b",
+			want: []Token{
+				{Type: Literal, Value: "a", Quantifier: None},
+				{Type: Literal, Value: "\\", Quantifier: None},
+				{Type: Literal, Value: "b", Quantifier: None},
+			},
+			wantErr: false,
+		},
 		// Error cases
 		{
 			name:    "unclosed character class",
@@ -170,6 +188,18 @@ func TestMatchToken(t *testing.T) {
 			name:  "literal 'a' does not match 'b'",
 			token: Token{Type: Literal, Value: "a"},
 			b:     'b',
+			want:  false,
+		},
+		{
+			name:  "literal '\\' matches '\\'",
+			token: Token{Type: Literal, Value: "\\"},
+			b:     '\\',
+			want:  true,
+		},
+		{
+			name:  "literal '\\' does not match 'a'",
+			token: Token{Type: Literal, Value: "\\"},
+			b:     'a',
 			want:  false,
 		},
 		// Digit tokens

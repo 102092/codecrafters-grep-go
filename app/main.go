@@ -72,44 +72,60 @@ func matchLine(inputText []byte, pattern string) (bool, error) {
 }
 
 // matchFromPosition attempts to match all tokens sequentially starting from the given position.
-// It handles quantifiers like + (one or more) using greedy matching.
+// It handles quantifiers like + (one or more) using backtracking.
 // It returns true if all tokens match consecutively from the start position.
 func matchFromPosition(inputText []byte, tokens []Token, startIndex int) bool {
-	inputIndex := startIndex
+	return matchFromPositionRecursive(inputText, tokens, 0, startIndex)
+}
 
-	// Try to match each token in sequence
-	for i := 0; i < len(tokens); i++ {
-		token := tokens[i]
-
-		// Handle quantifiers
-		if token.Quantifier == OneOrMore {
-			// + quantifier: match one or more times (greedy)
-			count := 0
-
-			// Consume as many matching characters as possible
-			for inputIndex < len(inputText) && matchToken(token, inputText[inputIndex]) {
-				count++
-				inputIndex++
-			}
-
-			// Must match at least once
-			if count < 1 {
-				return false
-			}
-
-		} else {
-			// No quantifier: match exactly once
-			if inputIndex >= len(inputText) {
-				return false
-			}
-
-			if matchToken(token, inputText[inputIndex]) {
-				inputIndex++ // Move to next character
-			} else {
-				return false // Token doesn't match, fail immediately
-			}
-		}
+// matchFromPositionRecursive recursively matches tokens with backtracking support.
+// It tries different match lengths for quantified tokens and backtracks on failure.
+//
+// Parameters:
+//   - inputText: the input string to match against
+//   - tokens: the parsed pattern tokens
+//   - tokenIndex: current token being matched
+//   - inputIndex: current position in the input text
+//
+// Returns true if all remaining tokens can be matched from the current position.
+func matchFromPositionRecursive(inputText []byte, tokens []Token, tokenIndex int, inputIndex int) bool {
+	// Base case: all tokens matched successfully
+	if tokenIndex >= len(tokens) {
+		return true
 	}
 
-	return true // All tokens matched successfully
+	token := tokens[tokenIndex]
+
+	if token.Quantifier == OneOrMore {
+		// + quantifier: match one or more times with backtracking
+		// Must match at least once
+		if inputIndex >= len(inputText) || !matchToken(token, inputText[inputIndex]) {
+			return false
+		}
+
+		// Try matching 1, 2, 3, ... times (backtracking)
+		// Start with minimum (1) and try increasing matches
+		for i := inputIndex; i < len(inputText) && matchToken(token, inputText[i]); i++ {
+			// Try matching the rest of the pattern with current match count
+			if matchFromPositionRecursive(inputText, tokens, tokenIndex+1, i+1) {
+				return true // Found a successful match
+			}
+			// If failed, backtrack and try matching one more character
+		}
+
+		return false // All attempts failed
+
+	} else {
+		// No quantifier: match exactly once
+		if inputIndex >= len(inputText) {
+			return false
+		}
+
+		if matchToken(token, inputText[inputIndex]) {
+			// Recursively match the rest of the pattern
+			return matchFromPositionRecursive(inputText, tokens, tokenIndex+1, inputIndex+1)
+		}
+
+		return false // Token doesn't match
+	}
 }
