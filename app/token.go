@@ -52,30 +52,35 @@ func parseTokens(pattern string) ([]Token, error) {
 
 	for i := 0; i < len(pattern); {
 		var token Token
-		var patternValue string
 		advance := 1
 
 		// Escape sequences: \d, \w, etc.
 		if pattern[i] == '\\' && i+1 < len(pattern) {
-			patternValue = pattern[i : i+2]
 			advance = 2
 
-			// Determine token type
+			// Create token based on escape sequence type
 			switch pattern[i+1] {
 			case 'd':
-				token.Type = Digit
+				token = Token{
+					Type:       Digit,
+					Value:      "\\d",
+					Quantifier: None,
+				}
 			case 'w':
-				token.Type = Word
+				token = Token{
+					Type:       Word,
+					Value:      "\\w",
+					Quantifier: None,
+				}
 			case '\\':
 				// Literal backslash: \\ represents a single '\'
-				token.Type = Literal
-				token.Value = "\\"
+				token = Token{
+					Type:       Literal,
+					Value:      "\\",
+					Quantifier: None,
+				}
 			default:
-				return nil, fmt.Errorf("unsupported escape sequence: %s", patternValue)
-			}
-			// Only set Value if not already set (like for \\)
-			if token.Value == "" {
-				token.Value = patternValue
+				return nil, fmt.Errorf("unsupported escape sequence: %s", pattern[i:i+2])
 			}
 
 			// Character classes: [abc] or [^abc]
@@ -90,16 +95,22 @@ func parseTokens(pattern string) ([]Token, error) {
 				return nil, fmt.Errorf("unclosed character class starting at position %d", i)
 			}
 
-			patternValue = pattern[i : j+1]
 			advance = j + 1 - i
+			patternValue := pattern[i : j+1]
 
 			// Check if it's a negative character class
 			if len(patternValue) >= 3 && patternValue[1] == '^' {
-				token.Type = NegCharClass
-				token.Value = patternValue[2 : len(patternValue)-1] // Extract "abc" from "[^abc]"
+				token = Token{
+					Type:       NegCharClass,
+					Value:      patternValue[2 : len(patternValue)-1], // Extract "abc" from "[^abc]"
+					Quantifier: None,
+				}
 			} else {
-				token.Type = CharClass
-				token.Value = patternValue[1 : len(patternValue)-1] // Extract "abc" from "[abc]"
+				token = Token{
+					Type:       CharClass,
+					Value:      patternValue[1 : len(patternValue)-1], // Extract "abc" from "[abc]"
+					Quantifier: None,
+				}
 			}
 
 			// Single literal character
@@ -109,14 +120,15 @@ func parseTokens(pattern string) ([]Token, error) {
 				return nil, fmt.Errorf("invalid pattern: + must follow a character at position %d", i)
 			}
 
-			token.Type = Literal
-			token.Value = string(pattern[i])
+			token = Token{
+				Type:       Literal,
+				Value:      string(pattern[i]),
+				Quantifier: None,
+			}
 		}
 
 		// Check for quantifier after the current token
 		nextPos := i + advance
-		token.Quantifier = None
-
 		if nextPos < len(pattern) && pattern[nextPos] == '+' {
 			token.Quantifier = OneOrMore
 			advance++
