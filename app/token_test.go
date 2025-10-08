@@ -121,6 +121,32 @@ func TestParseTokens(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:    ". dot metacharacter",
+			pattern: ".",
+			want: []Token{
+				{Type: Dot, Value: ".", Quantifier: None},
+			},
+			wantErr: false,
+		},
+		{
+			name:    ".+ dot with quantifier",
+			pattern: ".+",
+			want: []Token{
+				{Type: Dot, Value: ".", Quantifier: OneOrMore},
+			},
+			wantErr: false,
+		},
+		{
+			name:    "d.g pattern with dot",
+			pattern: "d.g",
+			want: []Token{
+				{Type: Literal, Value: "d", Quantifier: None},
+				{Type: Dot, Value: ".", Quantifier: None},
+				{Type: Literal, Value: "g", Quantifier: None},
+			},
+			wantErr: false,
+		},
 		// Complex patterns
 		{
 			name:    "ca+ts pattern",

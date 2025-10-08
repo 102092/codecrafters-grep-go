@@ -19,6 +19,7 @@ const (
 	Word                          // \w - word character
 	CharClass                     // [abc] - positive character class
 	NegCharClass                  // [^abc] - negative character class
+	Dot                           // . - any single character (except newline)
 )
 
 // QuantifierType represents the quantifier applied to a token.
@@ -114,17 +115,26 @@ func parseTokens(pattern string) ([]Token, error) {
 				}
 			}
 
-			// Single literal character
+			// Single literal character or metacharacter
 		} else {
 			// Check for invalid + at the beginning or after special chars
 			if pattern[i] == '+' {
 				return nil, fmt.Errorf("invalid pattern: + must follow a character at position %d", i)
 			}
 
-			token = Token{
-				Type:       Literal,
-				Value:      string(pattern[i]),
-				Quantifier: None,
+			// Dot metacharacter: matches any single character
+			if pattern[i] == '.' {
+				token = Token{
+					Type:       Dot,
+					Value:      ".",
+					Quantifier: None,
+				}
+			} else {
+				token = Token{
+					Type:       Literal,
+					Value:      string(pattern[i]),
+					Quantifier: None,
+				}
 			}
 		}
 
@@ -186,6 +196,10 @@ func matchToken(token Token, b byte) bool {
 			return false
 		}
 		return !strings.ContainsRune(token.Value, rune(b))
+
+	case Dot:
+		// Dot matches any character except newline
+		return b != '\n'
 
 	default:
 		return false
