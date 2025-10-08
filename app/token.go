@@ -128,17 +128,30 @@ func parseTokens(pattern string) ([]Token, error) {
 		}
 
 		// Check for quantifier after the current token
-		nextPos := i + advance
-		if nextPos < len(pattern) && pattern[nextPos] == '+' {
-			token.Quantifier = OneOrMore
-			advance++
-		}
+		advance += parseQuantifierIfPresent(pattern, i+advance, &token)
 
 		tokens = append(tokens, token)
 		i += advance
 	}
 
 	return tokens, nil
+}
+
+// parseQuantifierIfPresent checks for a quantifier (+) after the current position
+// and updates the token accordingly. Returns number of characters consumed.
+//
+// Parameters:
+//   - pattern: the pattern string being parsed
+//   - pos: current position in the pattern to check for quantifier
+//   - token: pointer to the token to update with quantifier
+//
+// Returns the number of characters to advance (0 if no quantifier, 1 if quantifier found).
+func parseQuantifierIfPresent(pattern string, pos int, token *Token) int {
+	if pos < len(pattern) && pattern[pos] == '+' {
+		token.Quantifier = OneOrMore
+		return 1
+	}
+	return 0
 }
 
 // matchToken checks if a Token matches a single byte.
