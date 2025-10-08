@@ -97,6 +97,30 @@ func TestParseTokens(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:    "a? with zero-or-one quantifier",
+			pattern: "a?",
+			want: []Token{
+				{Type: Literal, Value: "a", Quantifier: ZeroOrOne},
+			},
+			wantErr: false,
+		},
+		{
+			name:    "\\d? with zero-or-one quantifier",
+			pattern: "\\d?",
+			want: []Token{
+				{Type: Digit, Value: "\\d", Quantifier: ZeroOrOne},
+			},
+			wantErr: false,
+		},
+		{
+			name:    "[abc]? character class with zero-or-one quantifier",
+			pattern: "[abc]?",
+			want: []Token{
+				{Type: CharClass, Value: "abc", Quantifier: ZeroOrOne},
+			},
+			wantErr: false,
+		},
 		// Complex patterns
 		{
 			name:    "ca+ts pattern",

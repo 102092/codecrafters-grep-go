@@ -115,6 +115,20 @@ func matchFromPositionRecursive(inputText []byte, tokens []Token, tokenIndex int
 
 		return false // All attempts failed
 
+	} else if token.Quantifier == ZeroOrOne {
+		// ? quantifier: match zero or one time with backtracking
+		// Try matching 0 times first (skip the token)
+		if matchFromPositionRecursive(inputText, tokens, tokenIndex+1, inputIndex) {
+			return true
+		}
+
+		// Try matching 1 time (consume one character)
+		if inputIndex < len(inputText) && matchToken(token, inputText[inputIndex]) {
+			return matchFromPositionRecursive(inputText, tokens, tokenIndex+1, inputIndex+1)
+		}
+
+		return false // Both attempts failed
+
 	} else {
 		// No quantifier: match exactly once
 		if inputIndex >= len(inputText) {

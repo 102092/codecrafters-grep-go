@@ -27,6 +27,7 @@ type QuantifierType int
 const (
 	None      QuantifierType = iota // Exactly one (no quantifier)
 	OneOrMore                       // + (one or more)
+	ZeroOrOne                       // ? (zero or one)
 )
 
 // Token represents a single pattern matching unit with optional quantifier.
@@ -147,9 +148,15 @@ func parseTokens(pattern string) ([]Token, error) {
 //
 // Returns the number of characters to advance (0 if no quantifier, 1 if quantifier found).
 func parseQuantifierIfPresent(pattern string, pos int, token *Token) int {
-	if pos < len(pattern) && pattern[pos] == '+' {
-		token.Quantifier = OneOrMore
-		return 1
+	if pos < len(pattern) {
+		switch pattern[pos] {
+		case '+':
+			token.Quantifier = OneOrMore
+			return 1
+		case '?':
+			token.Quantifier = ZeroOrOne
+			return 1
+		}
 	}
 	return 0
 }

@@ -479,6 +479,77 @@ func TestMatchLine(t *testing.T) {
 			want:    false,
 			wantErr: false,
 		},
+		// Zero or One (?) quantifier tests
+		{
+			name:    "dogs? matches dog (0 s)",
+			line:    []byte("dog"),
+			pattern: "dogs?",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "dogs? matches dogs (1 s)",
+			line:    []byte("dogs"),
+			pattern: "dogs?",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "colou?r matches color (0 u)",
+			line:    []byte("color"),
+			pattern: "colou?r",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "colou?r matches colour (1 u)",
+			line:    []byte("colour"),
+			pattern: "colou?r",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "a? matches empty at start",
+			line:    []byte("b"),
+			pattern: "a?b",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "a? matches single a",
+			line:    []byte("ab"),
+			pattern: "a?b",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "\\\\d? matches 0 digits",
+			line:    []byte("apple"),
+			pattern: "\\d?apple",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "\\\\d? matches 1 digit",
+			line:    []byte("1apple"),
+			pattern: "\\d?apple",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "[abc]? matches 0 chars",
+			line:    []byte("dog"),
+			pattern: "[abc]?dog",
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "[abc]? matches 1 char",
+			line:    []byte("adog"),
+			pattern: "[abc]?dog",
+			want:    true,
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
